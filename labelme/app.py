@@ -30,6 +30,11 @@ from labelme.widgets import ToolBar
 from labelme.widgets import UniqueLabelQListWidget
 from labelme.widgets import ZoomWidget
 
+import torch
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+import torchvision.models as models
 
 # FIXME
 # - [medium] Set max zoom value to something big enough for FitWidth/Window
@@ -427,15 +432,25 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         fill_drawing.trigger()
 
+        classifyImage = action(
+            self.tr('Classify selected Image'),
+            self.classifyImage,
+            shortcuts['classify'],
+            'objects',
+            self.tr('classify the selected polygon images'),
+            enabled=True,
+        )
+
         # Lavel list context menu.
         labelMenu = QtWidgets.QMenu()
-        utils.addActions(labelMenu, (edit, delete))
+        utils.addActions(labelMenu, (edit, classifyImage, delete))
         self.labelList.setContextMenuPolicy(Qt.CustomContextMenu)
         self.labelList.customContextMenuRequested.connect(
             self.popLabelListMenu)
 
         # Store actions for further handling.
         self.actions = utils.struct(
+            classifyImage=classifyImage,
             saveAuto=saveAuto,
             saveWithImageData=saveWithImageData,
             changeOutputDir=changeOutputDir,
@@ -1725,3 +1740,38 @@ class MainWindow(QtWidgets.QMainWindow):
                     images.append(relativePath)
         images.sort(key=lambda x: x.lower())
         return images
+
+    def current_label_image(self, img):
+        p = self.currentItem().shape().points
+        y, x = int(p[0].y()), int(p[0].x())
+        w, h = int(p[1].x() - p[0].x()), int(p[1].y() - p[0].y())
+        # np image (HxWxC)
+        return img[y:y + h, x:x + w, :3]
+
+    def classifyImage(self):
+        # preprocessing img
+        # from bytes image to np array
+
+        np_img = utils.img_data_to_arr(self.imageData)
+        croppedImg = self.current_label_image(np_img)
+        pil_img = utils.img_arr_to_pil(croppedImg)
+        transform = transforms.Compose([transforms.Resize(256),
+                                        transforms.CenterCrop(224),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                             std=[0.229, 0.224, 0.225])])
+        img = transform(pil_img)
+        img = img.unsqueeze(0)
+        model = models.resnet50(pretrained=True)
+        model.eval()
+        out = model(img)
+        # test for check
+        # remove this part
+        with open('imagenet1000_clsidx_to_labels.txt') as f:
+            classes = [line.strip() for line in f.readlines()]
+
+        _, index = torch.max(out, 1)
+        percentage = torch.nn.functional.softmax(out, dim=1)[0] * 100
+        print(classes[index[0]], percentage[index[0]].item())
+
+        return

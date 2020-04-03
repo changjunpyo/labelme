@@ -7,6 +7,10 @@ import PIL.Image
 import PIL.ImageOps
 
 
+def img_arr_to_pil(img_arr):
+    return PIL.Image.fromarray(img_arr)
+
+
 def img_data_to_arr(img_data):
     f = io.BytesIO()
     f.write(img_data)

@@ -7,6 +7,7 @@ from .image import img_arr_to_b64
 from .image import img_b64_to_arr
 from .image import img_data_to_arr
 from .image import img_data_to_png_data
+from .image import img_arr_to_pil
 
 from .shape import labelme_shapes_to_label
 from .shape import masks_to_bboxes
