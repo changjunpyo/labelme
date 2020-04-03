@@ -11,6 +11,12 @@ def img_arr_to_pil(img_arr):
     return PIL.Image.fromarray(img_arr)
 
 
+def img_data_to_pil(img_data):
+    f = io.BytesIO()
+    f.write(img_data)
+    return PIL.Image.open(f)
+
+
 def img_data_to_arr(img_data):
     f = io.BytesIO()
     f.write(img_data)

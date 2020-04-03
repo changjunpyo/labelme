@@ -1743,24 +1743,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def current_label_image(self, img):
         p = self.currentItem().shape().points
-        y, x = int(p[0].y()), int(p[0].x())
-        w, h = int(p[1].x() - p[0].x()), int(p[1].y() - p[0].y())
+        top_left_x1, top_left_y1 = int(p[0].x()), int(p[0].y())
+        bottom_right_x2, bottom_right_y2 = int(p[1].x()), int(p[1].y())
         # np image (HxWxC)
-        return img[y:y + h, x:x + w, :3]
+        return img.crop((top_left_x1, top_left_y1, bottom_right_x2, bottom_right_y2))
 
     def classifyImage(self):
         # preprocessing img
         # from bytes image to np array
-
-        np_img = utils.img_data_to_arr(self.imageData)
-        croppedImg = self.current_label_image(np_img)
-        pil_img = utils.img_arr_to_pil(croppedImg)
+        img = utils.img_data_to_pil(self.imageData).convert('RGB')
+        cropped_img = self.current_label_image(img)
         transform = transforms.Compose([transforms.Resize(256),
                                         transforms.CenterCrop(224),
                                         transforms.ToTensor(),
                                         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                              std=[0.229, 0.224, 0.225])])
-        img = transform(pil_img)
+        img = transform(cropped_img)
         img = img.unsqueeze(0)
         model = models.resnet50(pretrained=True)
         model.eval()
