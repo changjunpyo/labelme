@@ -47,13 +47,13 @@ class Shape(object):
         self.shape_type = shape_type
         self.flags = flags
         self.other_data = {}
-
         self._highlightIndex = None
         self._highlightMode = self.NEAR_VERTEX
         self._highlightSettings = {
             self.NEAR_VERTEX: (4, self.P_ROUND),
             self.MOVE_VERTEX: (1.5, self.P_SQUARE),
         }
+        self.inside_points = []
 
         self._closed = False
 
@@ -74,7 +74,7 @@ class Shape(object):
         if value is None:
             value = 'polygon'
         if value not in ['polygon', 'rectangle', 'point',
-           'line', 'circle', 'linestrip']:
+                         'line', 'circle', 'linestrip']:
             raise ValueError('Unexpected shape_type: {}'.format(value))
         self._shape_type = value
 
@@ -260,3 +260,9 @@ class Shape(object):
 
     def __setitem__(self, key, value):
         self.points[key] = value
+
+    def addInsidePoints(self, point):
+        self.inside_points.append(point)
+
+    def removeInsidePoints(self, i):
+        self.inside_points.pop(i)

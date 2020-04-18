@@ -96,7 +96,7 @@ class Canvas(QtWidgets.QWidget):
     @createMode.setter
     def createMode(self, value):
         if value not in ['polygon', 'rectangle', 'circle',
-           'line', 'point', 'linestrip']:
+                         'line', 'point', 'linestrip']:
             raise ValueError('Unsupported createMode: %s' % value)
         self._createMode = value
 
@@ -403,6 +403,17 @@ class Canvas(QtWidgets.QWidget):
         return self.drawing() and self.current and len(self.current) > 2
 
     def mouseDoubleClickEvent(self, ev):
+        if QT5:
+            pos = self.transformPos(ev.localPos())
+        else:
+            pos = self.transformPos(ev.posF())
+        if self.selectedShapes is not None and self.editing():
+            for shape in self.selectedShapes:
+                if shape.shape_type == 'rectangle':
+                    shape.addInsidePoints(pos - shape.points[0])
+                    break
+            self.repaint()
+            self.storeShapes()
         # We need at least 4 points here, since the mousePress handler
         # adds an extra one before this handler is called.
         if (self.double_click == 'close' and self.canCloseShape() and
@@ -510,6 +521,7 @@ class Canvas(QtWidgets.QWidget):
         if not self.pixmap:
             return super(Canvas, self).paintEvent(event)
 
+        prevPointList = []
         p = self._painter
         p.begin(self)
         p.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -526,6 +538,27 @@ class Canvas(QtWidgets.QWidget):
                     self.isVisible(shape):
                 shape.fill = shape.selected or shape == self.hShape
                 shape.paint(p)
+                points = shape.points
+                bNum = self.shapes.index(shape) + 1
+                if shape.inside_points is not None:
+                    for inside_point in shape.inside_points:
+                        p.drawEllipse(inside_point + points[0], 2, 2)
+                        p.setFont(QtGui.QFont('Arial', 7))
+                        p.drawText(inside_point.x(
+                        ) + points[0].x(), inside_point.y() + points[0].y() - 7, 'Box %s' % (bNum))
+                        p.drawText(
+                            inside_point + points[0], '(%d, %d)' % (int(inside_point.x()), int(inside_point.y())))
+
+                tRect = QtCore.QRect(int(points[0].x()), int(
+                    points[0].y()) - 16, int(points[1].x()), int(points[1].y()) - 16)
+                bRect = QtCore.QRect(int(points[0].x()), int(
+                    points[0].y()) - 32, int(points[1].x()), int(points[1].y()) - 32)
+                p.setFont(QtGui.QFont('Arial', 11))
+                p.drawText(bRect, QtCore.Qt.AlignLeft, 'Box %s' % (bNum))
+                p.drawText(tRect, QtCore.Qt.AlignLeft, '(%s, %s, %s, %s)' % (
+                    int(points[0].x()), int(points[0].y()), int(points[1].x()), int(points[1].y())))
+
+
         if self.current:
             self.current.paint(p)
             self.line.paint(p)

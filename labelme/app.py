@@ -1042,6 +1042,7 @@ class MainWindow(QtWidgets.QMainWindow):
             shape_type = shape['shape_type']
             flags = shape['flags']
             group_id = shape['group_id']
+            inside_points = shape['inside_points']
             other_data = shape['other_data']
 
             shape = Shape(
@@ -1051,6 +1052,8 @@ class MainWindow(QtWidgets.QMainWindow):
             )
             for x, y in points:
                 shape.addPoint(QtCore.QPointF(x, y))
+            for x, y in inside_points:
+                shape.addInsidePoints(QtCore.QPointF(x, y))
             shape.close()
 
             default_flags = {}
@@ -1085,6 +1088,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 group_id=s.group_id,
                 shape_type=s.shape_type,
                 flags=s.flags,
+                inside_points=[(p.x(), p.y()) for p in s.inside_points]
             ))
             return data
 

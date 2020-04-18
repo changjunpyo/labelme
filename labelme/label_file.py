@@ -70,6 +70,7 @@ class LabelFile(object):
             'group_id',
             'shape_type',
             'flags',
+            'inside_points'
         ]
         try:
             with open(filename, 'rb' if PY2 else 'r') as f:
@@ -111,6 +112,7 @@ class LabelFile(object):
                     shape_type=s.get('shape_type', 'polygon'),
                     flags=s.get('flags', {}),
                     group_id=s.get('group_id'),
+                    inside_points=s.get('inside_points'),
                     other_data={
                         k: v for k, v in s.items() if k not in shape_keys
                     }
