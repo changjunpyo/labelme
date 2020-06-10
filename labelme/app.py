@@ -36,11 +36,10 @@ import torchvision
 import torchvision.transforms as transforms
 import torchvision.models as models
 
-from detectron2.engine import DefaultPredictor
+from detectron2.engine.annotation import PredictorWithInteraction
 from detectron2.config import get_cfg
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog
-from detectron2 import model_zoo
 
 import cv2
 import numpy as np
@@ -174,6 +173,7 @@ class MainWindow(QtWidgets.QMainWindow):
         }
         self.canvas.scrollRequest.connect(self.scrollRequest)
 
+        self.canvas.seg_newShape.connect(self.seg_newShape)
         self.canvas.newShape.connect(self.newShape)
         self.canvas.shapeMoved.connect(self.setDirty)
         self.canvas.selectionChanged.connect(self.shapeSelectionChanged)
@@ -453,7 +453,6 @@ class MainWindow(QtWidgets.QMainWindow):
         segmentation = action(
             self.tr('Image Segmentation'),
             self.segmentation,
-            shortcuts['segmentation'],
             'objects',
             self.tr('segment the whole image'),
             enabled=True,
@@ -1219,6 +1218,42 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.canvas.undoLastLine()
             self.canvas.shapesBackups.pop()
+    
+    def seg_newShape(self, idx):
+        """Pop-up and give focus to the label editor.
+
+        position MUST be in global coordinates.
+        """
+        items = self.uniqLabelList.selectedItems()
+        text = None
+        if items:
+            text = items[0].data(Qt.UserRole)
+        flags = {}
+        group_id = None
+        text = str(idx)
+        if self._config['display_label_popup'] or not text:
+            self.labelDialog.edit.setText(text)
+
+        if text and not self.validateLabel(text):
+            self.errorMessage(
+                self.tr('Invalid label'),
+                self.tr(
+                    "Invalid label '{}' with validation type '{}'"
+                ).format(text, self._config['validate_label'])
+            )
+            text = ''
+        if text:
+            self.labelList.clearSelection()
+            shape = self.canvas.setLastLabel(text, flags)
+            shape.group_id = group_id
+            self.addLabel(shape)
+            self.actions.editMode.setEnabled(True)
+            self.actions.undoLastPoint.setEnabled(False)
+            self.actions.undo.setEnabled(True)
+            self.setDirty()
+        else:
+            self.canvas.undoLastLine()
+            self.canvas.shapesBackups.pop()
 
     def scrollRequest(self, delta, orientation):
         units = - delta * 0.1  # natural scroll
@@ -1803,18 +1838,38 @@ class MainWindow(QtWidgets.QMainWindow):
         img = np.array(img)
 
         cfg = get_cfg()
-        cfg.merge_from_file("./detectron2/configs/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_1x.yaml")
+        cfg.merge_from_file("../detectron2/configs/COCO-Annotation/annotation.yaml")
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
-        cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_1x.yaml")
+        cfg.MODEL.WEIGHTS = "../detectron2/output/model_final.pth"
         cfg.MODEL.DEVICE = 'cpu'
 
-        pred = DefaultPredictor(cfg)
-        outputs = pred(img)
+        pred = PredictorWithInteraction(cfg)
+        #features = pred.forward_backbone(img)
 
-        v = Visualizer(img[:,:,::-1], MetadataCatalog.get(cfg.DATASETS.TRAIN[0]), scale=1.2)
-        v = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+        # initial mask rcnn
+        outputs = pred(img)['instances']
 
-        cv2.imshow('Segmented Image', v.get_image())
+        metadata = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
+        class_names = metadata.thing_classes
 
+        visualizer = Visualizer(img[:,:,::-1], metadata)
+
+        visualizer.overlay_instances(
+            boxes=outputs.pred_boxes.tensor.detach().cpu(),
+            masks=outputs.pred_masks.detach().cpu(),
+            labels=[class_names[idx] for idx in outputs.pred_classes.tolist()],
+        )
+        visualizer.output.save('temp.jpg')
+
+        filename = 'temp.jpg'
+        self.loadFile(filename)
+
+        boxes = outputs.pred_boxes.tensor
+        for i, box in enumerate(boxes):
+            shape = Shape(shape_type='rectangle')
+            shape.addPoint(QtCore.QPointF(box[0], box[1]))
+            shape.addPoint(QtCore.QPointF(box[2], box[3]))
+            self.canvas.current = shape
+            self.canvas.seg_finalise(i)
 
         return
