@@ -41,7 +41,6 @@ It is written in Python and uses Qt for its graphical interface.
 <img src="https://user-images.githubusercontent.com/4310419/47907116-85667800-de82-11e8-83d0-b9f4eb33268f.gif" width="30%" /> <img src="https://user-images.githubusercontent.com/4310419/47922172-57972880-deae-11e8-84f8-e4324a7c856a.gif" width="30%" /> <img src="https://user-images.githubusercontent.com/14256482/46932075-92145f00-d080-11e8-8d09-2162070ae57c.png" width="32%" />  
 <i>Various primitives (polygon, rectangle, circle, line, and point).</i>
 
-
 ## Features
 
 - [x] Image annotation for polygon, rectangle, circle, line and point. ([tutorial](examples/tutorial))
@@ -51,14 +50,11 @@ It is written in Python and uses Qt for its graphical interface.
 - [x] Exporting VOC-format dataset for semantic/instance segmentation. ([semantic segmentation](examples/semantic_segmentation), [instance segmentation](examples/instance_segmentation))
 - [x] Exporting COCO-format dataset for instance segmentation. ([instance segmentation](examples/instance_segmentation))
 
-
-
 ## Requirements
 
 - Ubuntu / macOS / Windows
 - Python2 / Python3
 - [PyQt4 / PyQt5](http://www.riverbankcomputing.co.uk/software/pyqt/intro) / [PySide2](https://wiki.qt.io/PySide2_GettingStarted)
-
 
 ## Installation
 
@@ -149,7 +145,6 @@ conda activate labelme
 pip install labelme
 ```
 
-
 ## Usage
 
 Run `labelme --help` for detail.  
@@ -174,12 +169,13 @@ labelme data_annotated/ --labels labels.txt  # specify label list with a file
 
 For more advanced usage, please refer to the examples:
 
-* [Tutorial (Single Image Example)](examples/tutorial)
-* [Semantic Segmentation Example](examples/semantic_segmentation)
-* [Instance Segmentation Example](examples/instance_segmentation)
-* [Video Annotation Example](examples/video_annotation)
+- [Tutorial (Single Image Example)](examples/tutorial)
+- [Semantic Segmentation Example](examples/semantic_segmentation)
+- [Instance Segmentation Example](examples/instance_segmentation)
+- [Video Annotation Example](examples/video_annotation)
 
 ### Command Line Arguments
+
 - `--output` specifies the location that annotations will be written to. If the location ends with .json, a single annotation will be written to this file. Only one image can be annotated if a location is specified with .json. If the location does not end with .json, the program will assume it is a directory. Annotations will be stored in this directory with a name that corresponds to the image that the annotation was made on.
 - The first time you run labelme, it will create a config file in `~/.labelmerc`. You can edit this file and the changes will be applied the next time that you launch labelme. If you would prefer to use a config file from another location, you can specify this file with the `--config` flag.
 - Without the `--nosortlabels` flag, the program will list labels in alphabetical order. When the program is run with this flag, it will display labels in the order that they are provided.
@@ -193,7 +189,6 @@ For more advanced usage, please refer to the examples:
 - **How to get annotations for semantic segmentation?** See [examples/semantic_segmentation](examples/semantic_segmentation).
 - **How to get annotations for instance segmentation?** See [examples/instance_segmentation](examples/instance_segmentation).
 
-
 ## Testing
 
 ```bash
@@ -201,7 +196,6 @@ pip install hacking pytest pytest-qt
 flake8 .
 pytest -v tests
 ```
-
 
 ## Developing
 
@@ -215,6 +209,17 @@ source .anaconda3/bin/activate
 pip install -e .
 ```
 
+## Build Detectron2
+
+```bash
+#Before building Detectron2,
+#Do pre-installation works
+pip install cython pycocotools
+pip install opencv-python
+git clone https://github.com/facebookresearch/detectron2.git
+cd detectron2
+pip install -e .
+```
 
 ## How to build standalone executable
 
@@ -234,12 +239,10 @@ pyinstaller labelme.spec
 dist/labelme --version
 ```
 
-
 ## Acknowledgement
 
 This repo is the fork of [mpitid/pylabelme](https://github.com/mpitid/pylabelme),
 whose development has already stopped.
-
 
 ## Cite This Project
 
