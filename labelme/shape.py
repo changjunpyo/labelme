@@ -53,7 +53,8 @@ class Shape(object):
             self.NEAR_VERTEX: (4, self.P_ROUND),
             self.MOVE_VERTEX: (1.5, self.P_SQUARE),
         }
-        self.inside_points = []
+        self.fp_points = []
+        self.fn_points = []
 
         self._closed = False
 
@@ -261,8 +262,14 @@ class Shape(object):
     def __setitem__(self, key, value):
         self.points[key] = value
 
-    def addInsidePoints(self, point):
-        self.inside_points.append(point)
-
-    def removeInsidePoints(self, i):
-        self.inside_points.pop(i)
+    def addFpPoints(self, point):
+        self.fp_points.append(point)
+    
+    def addFnPoints(self, point):
+        self.fn_points.append(point)   
+    
+    def removeFpPoints(self, i):
+        self.fp_points.pop(i)
+    
+    def removeFnPoints(self, i):
+        self.fn_points.pop(i)

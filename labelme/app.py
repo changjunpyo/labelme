@@ -1061,7 +1061,8 @@ class MainWindow(QtWidgets.QMainWindow):
             shape_type = shape['shape_type']
             flags = shape['flags']
             group_id = shape['group_id']
-            inside_points = shape['inside_points']
+            fp_points = shape['fp_points']
+            fn_points = shape['fn_points']
             other_data = shape['other_data']
 
             shape = Shape(
@@ -1071,8 +1072,10 @@ class MainWindow(QtWidgets.QMainWindow):
             )
             for x, y in points:
                 shape.addPoint(QtCore.QPointF(x, y))
-            for x, y in inside_points:
-                shape.addInsidePoints(QtCore.QPointF(x, y))
+            for x, y in fp_points:
+                shape.addFpPoints(QtCore.QPointF(x, y))
+            for x, y in fn_points:
+                shape.addFnPoints(QtCore.QPointF(x, y))
             shape.close()
 
             default_flags = {}
@@ -1107,7 +1110,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 group_id=s.group_id,
                 shape_type=s.shape_type,
                 flags=s.flags,
-                inside_points=[(p.x(), p.y()) for p in s.inside_points]
+                fp_points=[(p.x(), p.y()) for p in s.fp_points],
+                fn_points=[(p.x(), p.y()) for p in s.fn_points]
             ))
             return data
 
@@ -1834,6 +1838,69 @@ class MainWindow(QtWidgets.QMainWindow):
         return
 
     def segmentation(self):
+        img = utils.img_data_to_pil(self.imageData).convert('RGB')
+        img = np.array(img)
+
+        cfg = get_cfg()
+        cfg.merge_from_file("../detectron2/configs/COCO-Annotation/annotation.yaml")
+        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
+        cfg.MODEL.WEIGHTS = "../detectron2/output/model_final.pth"
+        cfg.MODEL.DEVICE = 'cpu'
+
+        pred = PredictorWithInteraction(cfg)
+        #features = pred.forward_backbone(img)
+
+        # initial mask rcnn
+        outputs = pred(img)['instances']
+
+        metadata = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
+        class_names = metadata.thing_classes
+
+        visualizer = Visualizer(img[:,:,::-1], metadata)
+
+        visualizer.overlay_instances(
+            boxes=outputs.pred_boxes.tensor.detach().cpu(),
+            masks=outputs.pred_masks.detach().cpu(),
+            labels=[class_names[idx] for idx in outputs.pred_classes.tolist()],
+        )
+        visualizer.output.save('temp.jpg')
+
+        filename = 'temp.jpg'
+        self.loadFile(filename)
+
+        boxes = outputs.pred_boxes.tensor
+        for i, box in enumerate(boxes):
+            shape = Shape(shape_type='rectangle')
+            shape.addPoint(QtCore.QPointF(box[0], box[1]))
+            shape.addPoint(QtCore.QPointF(box[2], box[3]))
+            self.canvas.current = shape
+            self.canvas.seg_finalise(i)
+
+        return
+'''
+bboxes (list[tuple]):
+                tuple of (top_left.x, top_left.y, bottom_right.x, bottom_right.y)
+                per each bbox
+            clicks (list[list[tuple]]):
+                tuple of (x, y, is_fp) of absolute pixel location of the input image
+                per each bbox (if no clicks, empty list for that bbox)
+                ex: if four bboxes,
+                    [[(100, 40, True), (230, 60, False)], [], [], [(140, 70, True)]]
+'''
+    def get_clicks(self):
+        clicks = []
+        for shape in self.shapes:
+            points = shape.points
+            click = []
+            for fp_point in shape.fp_points:
+                click.append((fp_point[0]+points[0].x(), fp_point[1]+points[0].y(), True))
+            for fn_point in shape.fn_points:
+                click.append((fn_point[0]+points[0].x(), fn_point[1]+points[0].y(), False))
+        
+        return clicks
+
+    def segmentation_with_clicks(self):
+        clicks = self.get_clicks
         img = utils.img_data_to_pil(self.imageData).convert('RGB')
         img = np.array(img)
 

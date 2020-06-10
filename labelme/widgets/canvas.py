@@ -411,8 +411,12 @@ class Canvas(QtWidgets.QWidget):
         if self.selectedShapes is not None and self.editing():
             for shape in self.selectedShapes:
                 if shape.shape_type == 'rectangle':
-                    shape.addInsidePoints(pos - shape.points[0])
-                    break
+                    if ev.modifiers() & Qt.ControlModifier:
+                        shape.addFpPoints(pos - shape.points[0])
+                        break
+                    else:
+                        shape.addFnPoints(pos - shape.points[0])
+                        break
             self.repaint()
             self.storeShapes()
         # We need at least 4 points here, since the mousePress handler
@@ -541,15 +545,22 @@ class Canvas(QtWidgets.QWidget):
                 shape.paint(p)
                 points = shape.points
                 bNum = self.shapes.index(shape) + 1
-                if shape.inside_points is not None:
-                    for inside_point in shape.inside_points:
-                        p.drawEllipse(inside_point + points[0], 2, 2)
+                if shape.fp_points is not None:
+                    for fp_point in shape.fp_points:
+                        p.drawEllipse(fp_point + points[0], 2, 2)
                         p.setFont(QtGui.QFont('Arial', 7))
-                        p.drawText(inside_point.x(
-                        ) + points[0].x(), inside_point.y() + points[0].y() - 7, 'Box %s' % (bNum))
+                        p.drawText(fp_point.x(
+                        ) + points[0].x(), fp_point.y() + points[0].y() - 7, 'FP %s' % (bNum))
                         p.drawText(
-                            inside_point + points[0], '(%d, %d)' % (int(inside_point.x()), int(inside_point.y())))
-
+                            fp_point + points[0], '(%d, %d)' % (int(fp_point.x()), int(fp_point.y())))
+                if shape.fn_points is not None:
+                    for fp_point in shape.fn_points:
+                        p.drawEllipse(fn_point + points[0], 2, 2)
+                        p.setFont(QtGui.QFont('Arial', 7))
+                        p.drawText(fn_point.x(
+                        ) + points[0].x(), fn_point.y() + points[0].y() - 7, 'FN %s' % (bNum))
+                        p.drawText(
+                            fn_point + points[0], '(%d, %d)' % (int(fn_point.x()), int(fn_point.y())))
                 tRect = QtCore.QRect(int(points[0].x()), int(
                     points[0].y()) - 16, int(points[1].x()), int(points[1].y()) - 16)
                 bRect = QtCore.QRect(int(points[0].x()), int(
@@ -558,8 +569,6 @@ class Canvas(QtWidgets.QWidget):
                 p.drawText(bRect, QtCore.Qt.AlignLeft, 'Box %s' % (bNum))
                 p.drawText(tRect, QtCore.Qt.AlignLeft, '(%s, %s, %s, %s)' % (
                     int(points[0].x()), int(points[0].y()), int(points[1].x()), int(points[1].y())))
-
-
         if self.current:
             self.current.paint(p)
             self.line.paint(p)
